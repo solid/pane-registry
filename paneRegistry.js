@@ -20,6 +20,7 @@ var paneRegistry = module.exports = {}
 paneRegistry.list = []
 paneRegistry.paneForIcon = []
 paneRegistry.paneForPredicate = []
+paneRegistry.promises = {}
 paneRegistry.register = function (p, requireQueryButton) {
   p.requireQueryButton = requireQueryButton
   if (!p.name) {
@@ -32,6 +33,8 @@ paneRegistry.register = function (p, requireQueryButton) {
     return
   }
   paneRegistry.list.push(p)
+  const promises = paneRegistry.promises[p.name] || []
+  promises.forEach(promise => promise(p))
   if (!(p.name in paneRegistry)) { // don't overwrite methods
     paneRegistry[p.name] = p
     // console.log('    Indexing '+ p.name +' pane ...')
@@ -51,6 +54,20 @@ paneRegistry.byName = function (name) {
     if (paneRegistry.list[i].name === name) return paneRegistry.list[i]
   }
   return null
+}
+
+paneRegistry.resolveName = function (name) {
+  var pane = paneRegistry.byName(name)
+  if (pane) {
+    return Promise.resolve(pane)
+  }
+  let resolvePromise
+  const promise = new Promise(resolve => {
+    resolvePromise = resolve
+  })
+  paneRegistry.promises[name] = paneRegistry.promises[name] || []
+  paneRegistry.promises[name].push(resolvePromise)
+  return promise
 }
 
 // ENDS
